@@ -1,0 +1,530 @@
+
+启用服务端：sudo redis-server
+启用客户端：redis-cli
+端口：6379
+
+启用服务端：sudo mysql start
+启用客户端：mysql -uroot -pxx
+端口：3306
+
+启用服务端：sudo mongod
+启用客户端：mongo
+端口：27017
+
+pymongo
+
+一、MongoDB 注意点：
+
+1. 首次使用，需要在根目录下创建 /data/db 目录，用来做为MongoDB默认的数据存储目录，并指定全部权限。
+    $ sudo mkdir -p /data/db
+    $ sudo chmod 777 /data/db
+
+2. 之后在终端执行 sudo mongod，开启MongoDB服务；在终端执行 mongo，开启MongoDB shell客户端操作接口。
+
+3. 关闭MongoDB服务的三种方式：
+    -1 在MongoDB服务 终端界面 ctrl + c 关闭（推荐）；
+    -2 在MongoDB shell 客户端内执行：
+        > use admin
+        > db.shutdownServer()
+    -3 ps -aux | grep mongod 查询进程pid号，再通过 sudo kill -9 pid号 结束进程（不推荐）
+
+4. 关闭MongoDB shell 客户端：
+    -1 在MongoDB shell 客户端 终端界面 ctrl + c 关闭；
+    -2 在MongoDB shell 客户端内执行：
+        > exit
+
+
+5. MongoDB 内可以有多个 数据库(db)；每个数据库可以有多个 集合(collections)，每个集合内可以有多个 文档(document)，每个文档 是由多个键值对 组成的 字典形式(dict)。
+
+
+6. MongoDB数据库内提供的方法功能：如果是单个单词组成，则默认全部小写字母；如果是多个单词组成；则第一个单词的首字母小写，后面所有单词首字母大写（小驼峰），如 db.shutdownServer()
+
+7. MongoDB的 数据库(db) 不需要单独创建，通过 use 切换即可使用，如 use admin。如果该 数据库(db) 内没有数据，数据库其实并没有创建；当数据库中存有数据时，才会真正创建该 数据库(db)。
+
+
+
+二、MongoDB 基本操作命令：
+
+查看当前所在的数据库
+> db
+
+查看MongoDB服务器中所有的数据库
+> show dbs
+
+切换到指定的数据库
+> use XXX
+
+查看当前数据库中所有的集合
+> show collections
+
+在当前数据库下 创建存储不设上限的集合 xxx
+> db.createCollection("xxx")
+
+在当前数据库下 创建存储上限为 1024 字节的集合 xxx （了解）
+> db.createCollecion("xxx", {capped : true, size : 1024})
+
+查看当前数据库 指定集合的 所有文档数据
+> db.xxx.find()
+
+删除当前数据库 指定集合 及其所有文档数据
+> db.xxx.drop()
+
+删除当前数据库 及其所有集合和文档数据
+> db.dropDatabase()
+
+
+
+
+三、MongoDB文档数据的插入 (insert)
+
+1.
+> db.stu.insert({_id : 1, name : "关羽", age : 36})
+
+2.
+
+> data = {}
+{ }
+> data._id = 2
+2
+> data.name = "张飞"
+张飞
+> data.age = 34
+34
+> data
+{ "_id" : 2, "name" : "张飞", "age" : 34 }
+>
+
+> db.stu.insert(data)
+WriteResult({ "nInserted" : 1 })
+
+注意：新增的文档数据_id必须是唯一的，如果没有_id，MongoDb默认会添加一个 objectId()类型的数据
+
+四、文档数据的删除 (remove)
+
+1. 默认删除所有符合匹配的文档
+> db.stu.remove({"name" : "张飞"})
+
+2. 添加可选参数 {justOne : true} 表示只删除第一个符合匹配的文档
+> db.stu.remove({"name" :"张飞"}, {justOne : true})
+
+3. 一般采用根据_id 删除文档
+> db.stu.remove({_id : 4})
+
+4. 当匹配条件为空时，默认全部删除
+db.stu.remove({})
+
+
+五、文档数据的修改 (update)
+
+1. update必须有两个参数，第一个参数表示匹配条件，第二个参数表示替换后的全部文档数据（除_id 之外）
+> db.stu.update({"name" : "关羽"}, {"age" : 38})
+> db.stu.update({"age" : 38}, {"name" : "诸葛亮", "age" : 40})
+
+2. 添加 $set 修饰符，只替换指定字段数据，其他字段不变
+> db.stu.update({"name" : "张飞"}, {$set : {"age" : 38}})
+> db.stu.update({"name" : "张飞"}, {$set : {"age" : 38, "name" : "喳喳"}})
+
+3. 默认下只修改第一个符合匹配的结果，添加第三个可选参数 {multi : true} 表示全部修改。
+> db.stu.update({"name" :"张飞"}, {$set : {"age" : 50}}, {multi : true})
+
+4. 如果字段存在，则修改字段值；如果字段不存在，则添加该字段。
+> db.stu.update({"name" :"张飞"}, {$set : {"hometown" : "蜀"}}, {multi : true})
+
+
+六：save ： insert + update
+db.stu.save() 语法等同于 insert()
+
+1. 如果查找的对象 _id 不存在，则相当于insert新增该对象；
+> db.stu.save({"_id": : 5, "name" : "诸葛亮", "age" : 40})
+> db.stu.save({"_id": : 6, "name" : "司马懿", "age" : 40})
+
+2. 如果查找的对象 _id 存在，则相当于 update 就更新该对象
+> db.stu.save({"_id": : 5, "name" : "陆逊"})
+> db.stu.save({"_id": : 6, "name" : "鲁肃", "age" : 40})
+
+
+
+
+
+六：文档数据的查询 find()
+1. 基本查询方法:
+> db.stu.find() 默认查找所有的文档
+
+> db.stu.find({"age" : 18}) 查找所有age为18的文档
+
+> db.stu.findOne({"age" : 18}) 查找第一个age为18的文档数据
+
+> db.stu.find().pretty() 将所有结果按json风格格式化显示
+
+
+2. 比较运算符，用来处理数字的值
+等于 ： 默认是等于
+大于 ： $gt
+大于等于 : $gte
+小于 : $lt
+小于等于 : $lte
+不等于 : $ne
+
+db.stu.find({"age" : {$gt : 18}})
+db.stu.find({"age" : {$gte : 18}})
+db.stu.find({"age" : {$lt : 18}})
+db.stu.find({"age" : {$lte : 18}})
+db.stu.find({"age" : {$ne : 18}})
+
+也可以和其他条件组合查找：
+db.stu.find({"age" : {$gt : 18}, "hometown" : "桃花岛"})
+
+
+3. 逻辑运算符 $and $or
+
+默认多个条件关系是 $and { : , :, : } 表示多个条件是与
+> db.stu.find({"name" : "xxx", "age" : 18, "hometown" : "xxx"})
+
+可以通过 $or : [{}, {}, {}] 来修饰多个条件是关系是 或
+> db.stu.find({$or : [{"name" : "xxx"}, {"age" : 18}, {"hometown" : "xxx"}]})
+
+
+表示查找年龄大于等于18岁，或性别为男性
+> db.stu.find( {$or : [{"age" : {$gte : 18}}, {"gender" : true}] }  )
+
+表示查找年龄大于等于18岁，或性别为男性， 并且籍贯为蒙古
+> db.stu.find( {$or : [{"age" : {$gte : 18}}, {"gender" : true}], "hometown" : "蒙古" }  )
+
+
+4、范围运算符 $in $nin
+
+查找年龄在 [18, 20, 22] 范围中的文档数据
+> db.stu.find({"age" : {$in : [18, 20, 22]}})
+
+查找年龄不在 [18, 20, 22] 范围中的文档数据
+> db.stu.find({"age" : {$nin : [18, 20, 22]}})
+
+
+查询所有 蒙古或大理的 男性的 文档数据
+db.stu.find({"hometown": {$in : ["蒙古", "大理"]}, "gender" : true})
+
+查询所有 蒙古或大理的， 或男性的 文档数据
+db.stu.find( {$or : [{"hometown": {$in : ["蒙古", "大理"]}}, {"gender" : true}]})
+
+
+
+5. 正则表达式修饰符 $regex ，用来匹配字符串文本
+
+> db.stu.find({"name" : /^段/})
+{ "_id" : 5, "name" : "段誉", "hometown" : "大理", "age" : 16, "gender" : true }
+{ "_id" : 6, "name" : "段王爷", "hometown" : "大理", "age" : 45, "gender" : true }
+>
+> db.stu.find({"name" : {$regex : "^段"}})
+{ "_id" : 5, "name" : "段誉", "hometown" : "大理", "age" : 16, "gender" : true }
+{ "_id" : 6, "name" : "段王爷", "hometown" : "大理", "age" : 45, "gender" : true }
+>
+
+查找所有name以 b 开始的 文档数据
+> db.stu.find({"name" : {$regex : "^b"}})
+{ "_id" : 8, "name" : "bigcat", "age" : 18, "hometown" : "中国", "gender" : true }
+>
+$options 表示启用正则的修饰符，"$i" 表示忽略大小写，查找所有name以 b或B 开始的 文档数据
+> db.stu.find({"name" : {$regex : "^b", $options : "$i"}})
+
+
+6. 自定义函数语句（类似于JavaScript函数语句）查询
+查询所有年龄大于等于20的文档
+> db.stu.find({$where : function() {return this.age >= 20}})
+
+查询所有籍贯不是大理的文档
+> db.stu.find({$where : function() {return this.hometown != "大理"}})
+> db.stu.find({$where: function(){return this.hometown != "大理"}})
+
+
+
+
+
+
+七、find() 查询后的结果处理
+
+1. limit() 和 skip()
+limit() 从头部开始显示指定4个文档
+db.stu.find().limit(4)
+
+skip() 从头部跳过指定4个文档再开始显示
+db.stu.find().skip(4)
+
+如果组合使用，先 skip() 再 limit()
+db.stu.find().limit(4).skip(2)
+
+
+
+
+2. 投影（在 find() 的第二个参数指定显示需要的字段）
+
+find() 第二个参数可以指定显示的字段值，1 和 true表示显示；0 和 false表示不显示
+> db.stu.find({}, {"name" : 1, "age" : true})
+
+默认字段是不显示的，除非指定为1或true；_id 字段默认是显示的，除非指定为 0或false
+> db.stu.find({}, {"name" : 1, "age" : true, "_id" : 0})
+
+
+
+3. sort() 排序：
+先对性别进行降序排序；如果有相同的性别，再对相同性别的文档的age进行升序排序，
+db.stu.find().sort({"gender" : -1, "age" : 1, })
+
+1 表示升序
+-1 表示降序
+
+
+4. count() 统计个数
+
+> db.stu.find().count()
+> db.stu.count()
+
+
+> db.stu.find({"age" : 18}).count()
+> db.stu.count({"age" : 18})
+
+count() 也可以直接写查询条件，但是返回值是文档的个数
+
+5. distinct() 输出查询结果的指定字段，并去重，返回数组形式
+显示 所有age大于等于18 的籍贯，并去重显示输出数组。
+> db.stu.distinct("hometown", {"age" : {$gte : 18}})
+[ "蒙古", "桃花岛", "大理", "中国" ]
+
+
+
+
+
+
+
+
+------ MongoDB 高级： 聚合应用 aggregate
+
+
+一、$group
+
+
+
+1. {$group : {_id : "$字段"}} 按指定字段进行分组（_id 是特殊的字段，用来表示分组依据）
+
+对集合所有文档，按 "gender" 字段进行分组，产生两组数据 （仅仅分组，没有应用聚合方法）
+> db.stu.aggregate([ {$group : {_id : "$gender"}}])
+{ "_id" : false }
+{ "_id" : true }
+
+
+2. {$sum : 1}   统计个数
+
+- 对集合所有文档，按"gender" 字段进行分组，并分别统计两组文档数据的个数（用count字段表示）
+> db.stu.aggregate([ {$group : {_id : "$gender", count : {$sum : 1} }}])
+{ "_id" : false, "count" : 2 }
+{ "_id" : true, "count" : 6 }
+
+
+3. {$sum : "$字段"}  计算指定字段值的总和
+
+- 对集合所有文档，按"gender"字段进行分组，并分别统计两组文档数据"age"的总和（用sum_age字段表示）
+> db.stu.aggregate([ {$group : {_id : "$gender", sum_age : {$sum : "$age"} }}])
+{ "_id" : false, "sum_age" : 36 }
+{ "_id" : true, "sum_age" : 157 }
+
+
+4. {$avg : "$字段"}   计算指定字段值的平均数
+
+- 对集合所有文档，按"gender"字段进行分组，并分别统计两组文档数据"age"的平均值（用avg_age字段表示）
+> db.stu.aggregate([ {$group : {_id : "$gender", avg_age : {$avg : "$age"} }}])
+{ "_id" : false, "avg_age" : 18 }
+{ "_id" : true, "avg_age" : 26.166666666666668 }
+
+- 对集合所有文档，按"hometown"字段进行分组，并分别统计两组文档数据"age"的平均值（用avg_age字段表示）
+> db.stu.aggregate([ {$group : {_id : "$hometown", avg_age : {$avg : "$age"} }}])
+{ "_id" : "中国", "avg_age" : 18 }
+{ "_id" : "大理", "avg_age" : 30.5 }
+{ "_id" : "桃花岛", "avg_age" : 29 }
+{ "_id" : "蒙古", "avg_age" : 19 }
+
+
+5. {$max : "$字段"}   计算指定字段值的最大数
+
+- 对集合所有文档，按"hometown"字段进行分组，并分别统计两组文档数据"age"的最大值（用max_age字段表示）
+> db.stu.aggregate([ {$group : {_id : "$hometown", max_age : {$max : "$age"} }}])
+{ "_id" : "中国", "max_age" : 18 }
+{ "_id" : "大理", "max_age" : 45 }
+{ "_id" : "桃花岛", "max_age" : 40 }
+{ "_id" : "蒙古", "max_age" : 20 }
+
+
+6. {$min : "$字段"}   计算指定字段值的最小数
+
+- 对集合所有文档，按"hometown"字段进行分组，并分别统计两组文档数据"age"的最小值（用min_age字段表示）
+> db.stu.aggregate([ {$group : {_id : "$hometown", min_age : {$min : "$age"} }}])
+{ "_id" : "中国", "min_age" : 18 }
+{ "_id" : "大理", "min_age" : 16 }
+{ "_id" : "桃花岛", "min_age" : 18 }
+{ "_id" : "蒙古", "min_age" : 18 }
+>
+
+7. {$push : "$字段"}   计算指定字段所有的值，并存入数组中
+- 对集合所有文档，按"hometown"字段进行分组，并分别统计两组文档数据中所有的"age"值（用all_age字段表示）
+> db.stu.aggregate([ {$group : {_id : "$hometown", all_age : {$push : "$age"} }}])
+{ "_id" : "中国", "all_age" : [ 18, 18 ] }
+{ "_id" : "大理", "all_age" : [ 16, 45 ] }
+{ "_id" : "桃花岛", "all_age" : [ 18, 40 ] }
+{ "_id" : "蒙古", "all_age" : [ 20, 18 ] }
+
+- 对集合所有文档，按"hometown"字段进行分组，并分别统计两组文档数据中所有的"name"值（用all_name字段表示）
+> db.stu.aggregate([ {$group : {_id : "$hometown", last_name : {$last : "$name"} }}])
+{ "_id" : "中国", "last_name" : "bigcat" }
+{ "_id" : "大理", "last_name" : "段王爷" }
+{ "_id" : "桃花岛", "last_name" : "黄药师" }
+{ "_id" : "蒙古", "last_name" : "华筝" }
+
+
+8. {$first : "$age"}    计算指定字段的第一个值
+
+- 对集合所有文档，按"hometown"字段进行分组，并分别统计两组文档数据"age"的第一个值（用first_age字段表示）
+> db.stu.aggregate([ {$group : {_id : "$hometown", first_age : {$first : "$age"} }}])
+{ "_id" : "中国", "first_age" : 18 }
+{ "_id" : "大理", "first_age" : 16 }
+{ "_id" : "桃花岛", "first_age" : 18 }
+{ "_id" : "蒙古", "first_age" : 20 }
+
+
+9. {$last : "$age"}    计算指定字段的最后一个值
+
+- 对集合所有文档，按"hometown"字段进行分组，并分别统计两组文档数据"name"的最后一个值（用last_name字段表示
+> db.stu.aggregate([ {$group : {_id : "$hometown", first_name : {$first : "$name"} }}])
+{ "_id" : "中国", "first_name" : "BigCat" }
+{ "_id" : "大理", "first_name" : "段誉" }
+{ "_id" : "桃花岛", "first_name" : "黄蓉" }
+{ "_id" : "蒙古", "first_name" : "郭靖" }
+
+
+用来分别输出分组后每组文档的所有数据信息
+ db.stu.aggregate([{$group : {_id : "$gender", all_info : {$push : "$$ROOT"}}}])
+
+
+二. $match 对文档进行条件过滤，语法等同于 find()条件查询，过滤结果可用于 group 分组处理
+
+只对年龄大于等于18岁的文档 进行分组，再按籍贯分组，分别统计每组的姓名。
+db.stu.aggregate([{$match : {age : {$gte : 18}}}, {$group : {_id : "$hometown", all_name : {$push : "$name"}}}])
+
+
+只对 籍贯为 桃花岛和大理的 文档数据 按性别分组，同统计每组文档数据的姓名。
+db.stu.aggregate([
+    {$match : {hometown : {$in : ["桃花岛", "大理"]}}},
+    {$group : {_id : "$gender", all_name : {$push : "$name"}}}
+])
+
+
+
+三. $project ；相当于 find() 的投影处理，只输出指定的字段
+
+只对籍贯为蒙古和中国的文档数据 按性别分组，并统计平均年龄和所有人的姓名，最后投影只显示平均年龄
+db.stu.aggregate([
+    {$match : {hometown : {$in : ["蒙古", "中国"]}}},
+    {$group : {_id : "$gender", avg_age : {$avg : "$age"}, all_name : {$push : "$name"}}},
+    {$project : {_id : 0, avg_age : 1}}
+])
+_id 默认显示，必须手动指定为 0/false 表示不显示
+
+
+四、 $sort : 对指定字段的值进行排序处理
+
+$match ； 查找所有age小于45的文档数据
+$group : 按hometown进行分组，并统计每组文档数据的 平均年龄和文档个数
+$sort ；对文档数据按 avg_age 升序排序
+$project : 最后投影显示 _id 和 avg_age 字段数据
+
+db.stu.aggregate([
+    {$match : {age : {$lt : 45}}},
+    {$group : {_id : "$hometown", avg_age : {$avg : "$age"}, count : {$sum : 1}}},
+    {$sort : {avg_age : 1}},
+    {$project : {_id : 1, avg_age : 1}}
+])
+
+{ "_id" : "大理", "avg_age" : 16 }
+{ "_id" : "中国", "avg_age" : 18 }
+{ "_id" : "蒙古", "avg_age" : 19 }
+{ "_id" : "桃花岛", "avg_age" : 29 }
+
+
+
+五、 $skip 和 $limit : 分别表示 跳过前N个文档开始显示 和 显示前N个文档
+db.stu.aggregate([
+    {$match : {age : {$lt : 45}}},
+    {$group : {_id : "$hometown", avg_age : {$avg : "$age"}, count : {$sum : 1}}},
+    {$sort : {avg_age : 1}},
+    {$project : {_id : 1, avg_age : 1}},
+    {$skip : 1},
+    {$limit : 2}
+])
+
+
+
+六、 $unwind : 对文档指定字段的值（如果是Arrays） 进行拆分，并返回拆分后的多个文档。
+
+db.test.insert([
+{ "_id" : 1, "item" : "a", "size": [ "S", "M", "L"] },
+{ "_id" : 2, "item" : "b", "size" : [ ] },
+{ "_id" : 3, "item" : "c", "size": "M" },
+{ "_id" : 4, "item" : "d" },
+{ "_id" : 5, "item" : "e", "size" : null }
+])
+
+
+对集合里所有文档的 size 字段进行拆分，
+如果size的值是数组，则拆分为多个文档；
+如果size的值是字符串，保持不变；
+如果size的值是null、[] 或没有size字段，则默认忽略该文档。
+> db.test.aggregate([{$unwind : "$size"}])
+
+- 添加preserveNullAndEmptyArrays : true 保留 size的值是null、[] 或没有size字段 的文档（即结果保持不变）
+> db.test.aggregate([{$unwind : {path : "$size", preserveNullAndEmptyArrays:true}}])
+
+
+> db.stu.aggregate([{$group : {_id : "$gender", all_name : {$push : "$name"}}}])
+{ "_id" : false, "all_name" : [ "黄蓉", "华筝" ] }
+{ "_id" : true, "all_name" : [ "郭靖", "黄药师", "段誉", "段王爷", "BigCat", "bigcat" ] }
+>
+> db.stu.aggregate([{$group : {_id : "$gender", all_name : {$push : "$name"}}}, {$unwind : "$all_name"}])
+{ "_id" : false, "all_name" : "黄蓉" }
+{ "_id" : false, "all_name" : "华筝" }
+{ "_id" : true, "all_name" : "郭靖" }
+{ "_id" : true, "all_name" : "黄药师" }
+{ "_id" : true, "all_name" : "段誉" }
+{ "_id" : true, "all_name" : "段王爷" }
+{ "_id" : true, "all_name" : "BigCat" }
+{ "_id" : true, "all_name" : "bigcat" }
+
+
+
+-- MongoDB 的索引
+
+查看当前集合下所有的索引，注意每个所有都有一个name字段，表示索引名
+db.num.getIndexes()
+
+使用指定的字段做为索引
+db.num.ensureIndex({name : 1})
+
+删除指定的索引，注意参数是索引的name字段
+db.num.dropIndex("name_1")
+
+查看查询语句的执行状态
+db.sum.find({name : "user12123"}).explain("executionStats")
+
+
+
+
+-- MongoDb 数据备份和恢复（必须实现开启mongod服务）
+
+将-h指定的MongoDB服务器的 test 数据库数据 备份到 -o 指定的目录下（默认会按数据库名新建下一级目录 test）
+mongodump -h 127.0.0.1 -d test -o /data/db/
+
+将--dir 指定目录下的数据库 恢复到 -h 指定的MongoDB服务器的 test 数据库下
+mongorestore -h 127.0.0.1 -d test --dir /data/db/test
+
+
+
+
+
+
+
